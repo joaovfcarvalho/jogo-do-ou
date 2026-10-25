@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Jogo do Ou</title>
+  <meta name="description" content="Você prefere isso ou aquilo? O Jogo do Ou da galera.">
+  <meta name="theme-color" content="#FFCB2E">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="img/icone.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+  <link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+  <header class="topo">
+    <a class="marca" href="#inicio">Jogo do Ou</a>
+    <nav class="topo-nav" aria-label="Páginas">
+      <a href="#ranking">Ranking</a>
+      <a href="#sugerir">Sugerir</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Início -->
+    <section id="tela-inicio" class="tela" aria-labelledby="titulo-inicio">
+      <div class="capa" aria-hidden="true">
+        <span class="capa-bloco capa-a">isso</span>
+        <span class="capa-ou">ou</span>
+        <span class="capa-bloco capa-b">aquilo</span>
+      </div>
+      <h1 id="titulo-inicio" class="sr-only">Jogo do Ou</h1>
+
+      <label class="campo" for="nome">
+        <span class="campo-rotulo">Seu nome no jogo</span>
+        <input id="nome" name="nome" type="text" maxlength="20" autocomplete="nickname" placeholder="Ex.: Bruno">
+      </label>
+
+      <h2 class="subtitulo">Escolha o jogo</h2>
+      <div class="modos">
+        <button class="modo" data-modo="boas">
+          <span class="modo-nome">Boa ou boa</span>
+          <span class="modo-desc">Duas coisas boas. Só dá pra ficar com uma.</span>
+        </button>
+        <button class="modo" data-modo="ruins">
+          <span class="modo-nome">Ruim ou ruim</span>
+          <span class="modo-desc">Duas desgraças. Escolha a menor.</span>
+        </button>
+        <button class="modo" data-modo="misto">
+          <span class="modo-nome">Boa com ruim</span>
+          <span class="modo-desc">Cada lado vem com um prêmio e um castigo.</span>
+        </button>
+      </div>
+
+      <h2 class="subtitulo">Jogar com a galera</h2>
+      <p class="nota">Cada um vota no próprio celular e no fim da rodada todo mundo vê quem escolheu o quê.</p>
+      <div class="sala-acoes">
+        <label class="sr-only" for="modo-sala">Jogo da sala</label>
+        <select id="modo-sala" class="seletor">
+          <option value="boas">Boa ou boa</option>
+          <option value="ruins">Ruim ou ruim</option>
+          <option value="misto">Boa com ruim</option>
+        </select>
+        <button id="criar-sala" class="botao">Criar sala</button>
+        <form id="form-entrar" class="entrar">
+          <label class="sr-only" for="codigo">Código da sala</label>
+          <input id="codigo" type="text" inputmode="text" maxlength="4" autocomplete="off" placeholder="Código" pattern="[A-Za-z]{4}">
+          <button class="botao botao-secundario" type="submit">Entrar</button>
+        </form>
+      </div>
+
+      <h2 class="subtitulo">Ajustes</h2>
+      <div class="ajustes">
+        <label class="chave">
+          <input id="familia" type="checkbox">
+          <span>Modo família: esconde as alternativas pesadas</span>
+        </label>
+        <label class="chave">
+          <input id="equilibrado" type="checkbox" checked>
+          <span>Pares equilibrados: junta alternativas de peso parecido</span>
+        </label>
+      </div>
+
+      <p id="totais" class="rodape"></p>
+    </section>
+
+    <!-- Jogo solo -->
+    <section id="tela-jogo" class="tela" hidden aria-label="Dilema">
+      <div class="barra-jogo">
+        <a class="voltar" href="#inicio">Trocar de jogo</a>
+        <span id="jogo-modo" class="etiqueta"></span>
+      </div>
+      <div id="dilema-solo" class="dilema"></div>
+      <div id="resultado-solo" class="resultado" aria-live="polite"></div>
+      <div class="acoes-jogo">
+        <button id="proxima" class="botao" hidden>Próxima</button>
+      </div>
+    </section>
+
+    <!-- Sala -->
+    <section id="tela-sala" class="tela" hidden aria-label="Sala">
+      <div class="barra-jogo">
+        <button id="sair-sala" class="voltar">Sair da sala</button>
+        <span id="sala-codigo" class="etiqueta"></span>
+      </div>
+      <div id="sala-espera" class="espera" hidden>
+        <p class="espera-texto">Chame a galera: abram o link ou digitem o código</p>
+        <p id="espera-codigo" class="espera-codigo"></p>
+        <button id="convidar" class="botao botao-secundario">Copiar link da sala</button>
+      </div>
+      <ul id="sala-jogadores" class="jogadores" aria-label="Quem está na sala"></ul>
+      <div id="dilema-sala" class="dilema"></div>
+      <div id="resultado-sala" class="resultado" aria-live="polite"></div>
+      <div class="acoes-jogo">
+        <button id="sala-comecar" class="botao" hidden>Começar</button>
+        <button id="sala-revelar" class="botao botao-secundario" hidden>Revelar agora</button>
+        <button id="sala-proxima" class="botao" hidden>Próxima rodada</button>
+      </div>
+    </section>
+
+    <!-- Ranking -->
+    <section id="tela-ranking" class="tela" hidden aria-labelledby="titulo-ranking">
+      <h1 id="titulo-ranking" class="titulo">Ranking</h1>
+      <p class="nota">A nota começa com a de vocês na planilha e muda a cada voto: quem é escolhida sobe, quem é rejeitada desce.</p>
+      <div class="rankings">
+        <div>
+          <h2 class="subtitulo">As melhores</h2>
+          <ol id="ranking-boas" class="ranking"></ol>
+        </div>
+        <div>
+          <h2 class="subtitulo">As piores</h2>
+          <ol id="ranking-ruins" class="ranking"></ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sugerir -->
+    <section id="tela-sugerir" class="tela" hidden aria-labelledby="titulo-sugerir">
+      <h1 id="titulo-sugerir" class="titulo">Sugerir alternativa</h1>
+      <p class="nota">Entra no jogo na hora, com a nota média. Os votos acertam o resto.</p>
+      <form id="form-sugerir" class="sugerir">
+        <fieldset class="tipo">
+          <legend class="campo-rotulo">É boa ou ruim?</legend>
+          <label><input type="radio" name="tipo" value="boa" checked> Boa</label>
+          <label><input type="radio" name="tipo" value="ruim"> Ruim</label>
+        </fieldset>
+        <label class="campo" for="texto-sugestao">
+          <span class="campo-rotulo">A alternativa</span>
+          <textarea id="texto-sugestao" maxlength="220" rows="3" required placeholder="Ex.: Receber R$ 56 mil em biscoitos Passatempo"></textarea>
+        </label>
+        <label class="chave">
+          <input id="adulto-sugestao" type="checkbox">
+          <span>É pesada (some no modo família)</span>
+        </label>
+        <button class="botao" type="submit">Enviar alternativa</button>
+      </form>
+    </section>
+  </main>
+
+  <div id="aviso" class="aviso" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/pareamento.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
