@@ -18,6 +18,9 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* O atributo hidden vale mesmo onde a classe define display. */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -190,7 +193,8 @@ input::placeholder, textarea::placeholder { color: #6B7FB0; }
   background: none; border: 0; padding: 0; margin-right: 14px; color: var(--azul);
   text-decoration: underline; text-underline-offset: 3px; font-size: 0.95rem;
 }
-.acoes-jogo { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+.acoes-jogo { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 10px; }
+.rodadas { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 
 /* Sala */
 .espera { text-align: center; margin: 10px 0 18px; }
@@ -206,6 +210,39 @@ input::placeholder, textarea::placeholder { color: #6B7FB0; }
 }
 .jogadores li.votou { background: var(--azul); color: var(--branco); }
 .jogadores li.ausente { opacity: 0.45; }
+
+/* Fim de jogo: destaques da mesa e um cartão por pessoa (o seu em vermelho). */
+.fim { margin-bottom: 8px; }
+.fim .titulo { margin-top: 4px; }
+.fim .subtitulo { margin-top: 22px; }
+.destaques { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; max-width: 64ch; }
+.destaques li {
+  background: var(--branco); border: 2px solid var(--azul); border-radius: 14px; padding: 10px 14px;
+}
+.destaques strong { display: block; font-weight: 900; font-stretch: 112%; }
+.perfis { display: grid; gap: 14px; }
+.perfil {
+  background: var(--azul); color: var(--branco); border-radius: var(--raio-painel);
+  padding: 18px 20px 20px; box-shadow: 4px 4px 0 var(--azul-fundo);
+}
+.perfil.voce { background: var(--vermelho); box-shadow: 4px 4px 0 var(--vermelho-fundo); max-width: 640px; }
+.perfil p { margin: 0; }
+.perfil .perfil-nome { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.perfil-voce {
+  background: var(--branco); color: var(--azul); padding: 1px 10px; border-radius: 999px;
+  font-size: 0.8rem; font-weight: 800;
+}
+.perfil .perfil-titulo {
+  font-weight: 900; font-stretch: 125%; font-size: clamp(1.6rem, 7vw, 2.2rem); line-height: 1.02;
+  letter-spacing: -0.01em; margin: 2px 0 8px;
+}
+.perfil .perfil-frase { font-weight: 600; }
+.perfil .perfil-numeros { font-size: 0.95rem; margin-top: 8px; opacity: 0.9; }
+.perfil .perfil-previsao {
+  margin-top: 14px; padding-top: 12px; border-top: 2px solid rgba(255, 255, 255, 0.35);
+  font-weight: 700; font-stretch: 88%; font-size: 1.15rem; line-height: 1.2;
+}
+.perfil-rotulo { display: block; font-weight: 900; font-stretch: 112%; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.85; margin-bottom: 4px; }
 
 /* Ranking */
 .rankings { display: grid; gap: 8px 40px; }
@@ -235,6 +272,7 @@ input::placeholder, textarea::placeholder { color: #6B7FB0; }
   .opcao { min-height: 400px; padding: 30px 34px; }
   .modos { grid-template-columns: repeat(3, 1fr); }
   .rankings { grid-template-columns: 1fr 1fr; }
+  .perfis { grid-template-columns: 1fr 1fr; }
   .capa { grid-template-columns: auto auto auto; align-items: center; gap: 8px; }
   .capa-ou { margin: 0 -0.05em; }
 }

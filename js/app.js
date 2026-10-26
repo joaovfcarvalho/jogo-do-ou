@@ -18,8 +18,9 @@
     // solo
     modo: 'boas', par: null, votando: false, votado: false,
     // sala
+    rodadas: ler('rodadas', 10),
     sala: null, salaCodigo: null, salaTimer: null, salaOcupada: false,
-    salaRodada: -1, salaRevelada: false, salaMeuVoto: null, salaPar: null
+    salaRodada: -1, salaRevelada: false, salaMeuVoto: null, salaPar: null, salaFim: null
   };
 
   // ---------------------------------------------------------------- utilitários
@@ -56,6 +57,7 @@
 
   function pct(x) { return Math.round(x * 100) + '%'; }
   function numero(n) { return Number(n).toLocaleString('pt-BR'); }
+  function plural(n, um, varios) { return n + ' ' + (n === 1 ? um : varios); }
   function nota(x) { return x.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
   function trecho(texto) {
     var palavras = texto.split(/\s+/);
@@ -63,14 +65,24 @@
   }
 
   // Como chamar um lado do dilema num texto: pelo começo da alternativa (a boa, no misto).
+  // Sem a alternativa na lista (tirada do jogo depois), devolve null.
   function nomeDoLado(par, lado) {
     var o = par[lado];
-    return trecho(estado.porId.get(o.boa != null ? o.boa : o.ruim).texto);
+    var alt = estado.porId.get(o.boa != null ? o.boa : o.ruim);
+    return alt ? trecho(alt.texto) : null;
+  }
+
+  // O banco guarda as opções em JSON; os ids voltam como texto ou número.
+  function parDaSala(opcaoA, opcaoB) {
+    function ids(o) {
+      return { boa: o.boa != null ? Number(o.boa) : null, ruim: o.ruim != null ? Number(o.ruim) : null };
+    }
+    return { a: ids(opcaoA), b: ids(opcaoB) };
   }
 
   // Versão do estado da sala, para ignorar respostas que chegam fora de ordem.
   function versaoSala(st) {
-    return st.rodada * 10000 + (st.revelada ? 5000 : 0) + st.votos.length;
+    return st.rodada * 100000 + (st.encerrada ? 20000 : 0) + (st.revelada ? 10000 : 0) + st.votos.length;
   }
 
   // ---------------------------------------------------------------- dados
@@ -337,6 +349,8 @@
     estado.salaRevelada = false;
     estado.salaMeuVoto = null;
     estado.salaVersao = -1;
+    estado.salaFim = null;
+    $('#sala-total').value = String(estado.rodadas);
     $('#sala-codigo').textContent = 'Sala ' + codigo;
     $('#dilema-sala').innerHTML = '';
     $('#resultado-sala').textContent = 'Entrando na sala…';
@@ -392,21 +406,26 @@
     });
 
     var espera = st.rodada === 0;
+    var fim = !espera && !!st.encerrada;
+    var n = st.rodada - st.inicio_partida + 1;
+    var ultima = n >= st.total_rodadas;
+    $('#sala-codigo').textContent = 'Sala ' + st.codigo + (espera || fim ? '' : ' · ' + n + ' de ' + st.total_rodadas);
     $('#sala-espera').hidden = !espera;
     $('#espera-codigo').textContent = st.codigo;
+    $('#sala-fim').hidden = !fim;
+    $('#dilema-sala').hidden = espera || fim;
+    $('#sala-total-campo').hidden = !(espera || fim);
     $('#sala-comecar').hidden = !espera;
-    if (espera) {
-      $('#resultado-sala').textContent = 'Jogo: ' + MODOS[st.modo] + (st.familia ? ', modo família.' : '.');
-      $('#sala-revelar').hidden = true;
-      $('#sala-proxima').hidden = true;
+    $('#sala-de-novo').hidden = !fim;
+    if (espera || fim) {
+      ['#sala-revelar', '#sala-proxima', '#sala-ver', '#sala-terminar'].forEach(function (s) { $(s).hidden = true; });
+      $('#resultado-sala').textContent = espera ? 'Jogo: ' + MODOS[st.modo] + (st.familia ? ', modo família.' : '.') : '';
+      if (fim) await mostrarFim(st);
       return;
     }
 
     if (st.rodada !== estado.salaRodada) {
-      var par = {
-        a: { boa: st.opcao_a.boa != null ? Number(st.opcao_a.boa) : null, ruim: st.opcao_a.ruim != null ? Number(st.opcao_a.ruim) : null },
-        b: { boa: st.opcao_b.boa != null ? Number(st.opcao_b.boa) : null, ruim: st.opcao_b.ruim != null ? Number(st.opcao_b.ruim) : null }
-      };
+      var par = parDaSala(st.opcao_a, st.opcao_b);
       // Alguém pode ter sugerido alternativas depois que esta tela carregou.
       if (idsDoPar(par).some(function (id) { return !estado.porId.has(id); })) await carregar(true);
       estado.salaRodada = st.rodada;
@@ -445,7 +464,89 @@
     }
 
     $('#sala-revelar').hidden = st.revelada || st.votos.length === 0;
-    $('#sala-proxima').hidden = !st.revelada;
+    $('#sala-proxima').hidden = !st.revelada || ultima;
+    $('#sala-ver').hidden = !st.revelada || !ultima;
+    $('#sala-terminar').hidden = !st.revelada || ultima;
+  }
+
+  // ---------------------------------------------------------------- fim da partida
+
+  async function mostrarFim(st) {
+    var chave = st.codigo + ':' + st.inicio_partida;
+    if (estado.salaFim === chave) return;
+    estado.salaFim = chave;
+    var caixa = $('#fim-conteudo');
+    caixa.textContent = 'Somando os votos…';
+    try {
+      var rodadas = await Api.resultadoSala(st.codigo);
+      var faltam = rodadas.some(function (r) {
+        return idsDoPar(parDaSala(r.opcao_a, r.opcao_b)).some(function (id) { return !estado.porId.has(id); });
+      });
+      if (faltam) await carregar(true);
+      desenharFim(caixa, rodadas, chave);
+    } catch (e) {
+      estado.salaFim = null; // tenta de novo na próxima consulta
+      caixa.textContent = 'Não deu para somar os votos agora. Tentando de novo…';
+    }
+  }
+
+  function desenharFim(caixa, rodadas, semente) {
+    var res = Resultado.calcular(rodadas, {
+      semente: semente,
+      nomeDoLado: function (r, lado) { return nomeDoLado(parDaSala(r.opcao_a, r.opcao_b), lado); }
+    });
+    caixa.innerHTML = '';
+    if (!res.jogadores.length) {
+      caixa.appendChild(el('p', 'nota', 'Ninguém votou nesta partida.'));
+      return;
+    }
+    caixa.appendChild(el('p', 'nota', plural(res.rodadas, 'rodada', 'rodadas') + ', ' +
+      plural(res.jogadores.length, 'pessoa', 'pessoas') + '.'));
+
+    // O seu cartão vem primeiro; depois os destaques e o resto da galera.
+    var meus = res.jogadores.filter(function (j) { return j.nome === estado.jogador; });
+    var outros = res.jogadores.filter(function (j) { return j.nome !== estado.jogador; });
+    if (meus.length) caixa.appendChild(cartao(meus[0], true));
+
+    if (res.destaques.length) {
+      caixa.appendChild(el('h3', 'subtitulo', 'Destaques da mesa'));
+      var ul = el('ul', 'destaques');
+      res.destaques.forEach(function (d) {
+        var li = el('li');
+        li.appendChild(el('strong', null, d.titulo));
+        li.appendChild(document.createTextNode(d.texto));
+        ul.appendChild(li);
+      });
+      caixa.appendChild(ul);
+    }
+
+    if (outros.length) {
+      caixa.appendChild(el('h3', 'subtitulo', meus.length ? 'A galera' : 'Perfis'));
+      var grade = el('div', 'perfis');
+      outros.forEach(function (j) { grade.appendChild(cartao(j, false)); });
+      caixa.appendChild(grade);
+    }
+  }
+
+  function cartao(j, meu) {
+    var card = el('article', 'perfil' + (meu ? ' voce' : ''));
+    var nome = el('p', 'perfil-nome', j.nome);
+    if (meu) nome.appendChild(el('span', 'perfil-voce', 'Você'));
+    card.appendChild(nome);
+    card.appendChild(el('p', 'perfil-titulo', j.perfil.titulo));
+    card.appendChild(el('p', 'perfil-frase', j.perfil.frase));
+    var numeros = plural(j.votos, 'voto', 'votos');
+    if (j.maioria || j.minoria) numeros += ': ' + j.maioria + ' com a maioria, ' + j.minoria + ' na minoria';
+    card.appendChild(el('p', 'perfil-numeros', numeros + '.'));
+    if (j.parecido && j.parecido.iguais * 2 > j.parecido.juntos) {
+      card.appendChild(el('p', 'perfil-numeros', 'Vota igual a ' + j.parecido.nome + ': ' +
+        j.parecido.iguais + ' de ' + j.parecido.juntos + ' rodadas.'));
+    }
+    var prev = el('p', 'perfil-previsao');
+    prev.appendChild(el('span', 'perfil-rotulo', 'Previsão'));
+    prev.appendChild(document.createTextNode(j.previsao));
+    card.appendChild(prev);
+    return card;
   }
 
   async function escolherSala(lado) {
@@ -463,23 +564,47 @@
     }
   }
 
-  async function proximaRodada() {
+  // Sorteia o próximo par e pede ao banco para avançar (próxima rodada ou partida nova).
+  async function avancar(pedir, erro) {
     var st = estado.sala;
     if (!st) return;
     var par = Pareamento.proximoPar(st.modo, pool(st.familia), estado.porId, {
       equilibrado: estado.equilibrado, recentes: new Set(estado.recentes)
     });
     if (!par) { avisar('Não há alternativas suficientes neste modo.', true); return; }
-    $('#sala-proxima').disabled = true;
-    $('#sala-comecar').disabled = true;
+    var botoes = document.querySelectorAll('#tela-sala .acoes-jogo .botao');
+    botoes.forEach(function (b) { b.disabled = true; });
     try {
-      var novo = await Api.novaRodada(st.codigo, st.rodada, par.a, par.b);
+      var novo = await pedir(st, par);
       if (novo) await aplicarSala(novo);
     } catch (e) {
-      avisar('Não deu para puxar a próxima. Tente de novo.', true);
+      avisar(erro, true);
     } finally {
-      $('#sala-proxima').disabled = false;
-      $('#sala-comecar').disabled = false;
+      botoes.forEach(function (b) { b.disabled = false; });
+    }
+  }
+
+  function proximaRodada() {
+    return avancar(function (st, par) { return Api.novaRodada(st.codigo, st.rodada, par.a, par.b); },
+      'Não deu para puxar a próxima. Tente de novo.');
+  }
+
+  function novaPartida() {
+    var total = Number($('#sala-total').value);
+    estado.rodadas = total;
+    gravar('rodadas', total);
+    return avancar(function (st, par) { return Api.novaPartida(st.codigo, st.rodada, total, par.a, par.b); },
+      'Não deu para começar a partida. Tente de novo.');
+  }
+
+  async function encerrarPartida() {
+    var st = estado.sala;
+    if (!st) return;
+    try {
+      var novo = await Api.encerrar(st.codigo, st.rodada);
+      if (novo) await aplicarSala(novo);
+    } catch (e) {
+      avisar('Não deu para encerrar. Tente de novo.', true);
     }
   }
 
@@ -594,8 +719,11 @@
   $('#proxima').addEventListener('click', novoParSolo);
   $('#sair-sala').addEventListener('click', function () { estado.salaCodigo = null; location.hash = '#inicio'; });
   $('#convidar').addEventListener('click', convidar);
-  $('#sala-comecar').addEventListener('click', proximaRodada);
+  $('#sala-comecar').addEventListener('click', novaPartida);
+  $('#sala-de-novo').addEventListener('click', novaPartida);
   $('#sala-proxima').addEventListener('click', proximaRodada);
+  $('#sala-ver').addEventListener('click', encerrarPartida);
+  $('#sala-terminar').addEventListener('click', encerrarPartida);
   $('#sala-revelar').addEventListener('click', revelarAgora);
   $('#form-sugerir').addEventListener('submit', enviarSugestao);
 

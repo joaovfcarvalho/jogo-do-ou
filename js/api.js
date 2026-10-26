@@ -66,6 +66,15 @@
     },
     revelar: function (codigo, rodada) {
       return rpc('revelar', { p_codigo: codigo, p_rodada: rodada });
+    },
+    novaPartida: function (codigo, rodada, total, a, b) {
+      return rpc('nova_partida', { p_codigo: codigo, p_rodada: rodada, p_total: total, p_a: a, p_b: b });
+    },
+    encerrar: function (codigo, rodada) {
+      return rpc('encerrar', { p_codigo: codigo, p_rodada: rodada });
+    },
+    resultadoSala: function (codigo) {
+      return rpc('resultado_sala', { p_codigo: codigo });
     }
   };
 })();

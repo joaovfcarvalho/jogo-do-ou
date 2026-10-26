@@ -54,7 +54,7 @@
       </div>
 
       <h2 class="subtitulo">Jogar com a galera</h2>
-      <p class="nota">Cada um vota no próprio celular e no fim da rodada todo mundo vê quem escolheu o quê.</p>
+      <p class="nota">Cada um vota no próprio celular e no fim da rodada todo mundo vê quem escolheu o quê. No fim da partida sai o perfil de cada um.</p>
       <div class="sala-acoes">
         <label class="sr-only" for="modo-sala">Jogo da sala</label>
         <select id="modo-sala" class="seletor">
@@ -110,12 +110,28 @@
         <button id="convidar" class="botao botao-secundario">Copiar link da sala</button>
       </div>
       <ul id="sala-jogadores" class="jogadores" aria-label="Quem está na sala"></ul>
+      <div id="sala-fim" class="fim" hidden>
+        <h2 class="titulo">Fim de jogo</h2>
+        <div id="fim-conteudo" aria-live="polite"></div>
+      </div>
       <div id="dilema-sala" class="dilema"></div>
       <div id="resultado-sala" class="resultado" aria-live="polite"></div>
       <div class="acoes-jogo">
+        <label id="sala-total-campo" class="rodadas" hidden>
+          <span>Rodadas</span>
+          <select id="sala-total" class="seletor">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </label>
         <button id="sala-comecar" class="botao" hidden>Começar</button>
+        <button id="sala-de-novo" class="botao" hidden>Jogar de novo</button>
         <button id="sala-revelar" class="botao botao-secundario" hidden>Revelar agora</button>
         <button id="sala-proxima" class="botao" hidden>Próxima rodada</button>
+        <button id="sala-ver" class="botao" hidden>Ver o resultado</button>
+        <button id="sala-terminar" class="voltar" hidden>Terminar aqui</button>
       </div>
     </section>
 
@@ -162,6 +178,7 @@
 
   <script src="js/config.js"></script>
   <script src="js/pareamento.js"></script>
+  <script src="js/resultado.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
 </body>
