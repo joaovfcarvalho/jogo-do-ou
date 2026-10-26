@@ -619,6 +619,15 @@
     }
   }
 
+  // Sai de verdade: o nome some da lista de todo mundo. Sem conexão, fica como ausente.
+  function sairSala() {
+    var codigo = estado.salaCodigo;
+    estado.salaCodigo = null;
+    pararSala();
+    if (codigo && estado.jogador) Api.sairSala(codigo, estado.jogador).catch(function () { /* fica como ausente */ });
+    location.hash = '#inicio';
+  }
+
   async function convidar() {
     var link = location.origin + location.pathname + '#sala/' + estado.salaCodigo;
     if (navigator.share) {
@@ -717,7 +726,7 @@
     location.hash = '#sala/' + cod;
   });
   $('#proxima').addEventListener('click', novoParSolo);
-  $('#sair-sala').addEventListener('click', function () { estado.salaCodigo = null; location.hash = '#inicio'; });
+  $('#sair-sala').addEventListener('click', sairSala);
   $('#convidar').addEventListener('click', convidar);
   $('#sala-comecar').addEventListener('click', novaPartida);
   $('#sala-de-novo').addEventListener('click', novaPartida);

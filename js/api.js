@@ -55,6 +55,9 @@
     entrarSala: function (codigo, jogador) {
       return rpc('entrar_sala', { p_codigo: codigo, p_jogador: jogador });
     },
+    sairSala: function (codigo, jogador) {
+      return rpc('sair_sala', { p_codigo: codigo, p_jogador: jogador });
+    },
     estadoSala: function (codigo, jogador) {
       return rpc('estado_sala', { p_codigo: codigo, p_jogador: jogador });
     },
