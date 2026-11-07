@@ -1,11 +1,15 @@
-# O plano gratuito do Supabase pausa o projeto depois de 7 dias sem uso.
-# Este agendamento consulta o banco a cada 3 dias. No dia 1 de cada mês também
-# grava um commit, porque o GitHub desliga agendamentos de repositórios
-# públicos que passam 60 dias sem atividade.
+# O plano gratuito do Supabase pausa projetos que considera parados, e um ping
+# pela API não basta: em novembro de 2026 o banco foi pausado ~30 h depois de
+# um ping que deu certo. Por isso este agendamento:
+#   1. consulta o banco a cada 6 horas;
+#   2. se o banco não responder, pede ao Supabase para reativá-lo (precisa do
+#      segredo SUPABASE_ACCESS_TOKEN no repositório) e espera ele voltar.
+# No dia 1 de cada mês também grava um commit, porque o GitHub desliga
+# agendamentos de repositórios públicos que passam 60 dias sem atividade.
 name: Manter o banco ativo
 on:
   schedule:
-    - cron: "17 12 */3 * *"
+    - cron: "17 */6 * * *"
   workflow_dispatch:
 permissions:
   contents: write
@@ -14,16 +18,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Consultar o banco
+      - name: Consultar o banco e reativar se estiver pausado
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           URL=$(grep -o "https://[a-z0-9]*\.supabase\.co" js/config.js)
           CHAVE=$(grep -o "sb_publishable_[A-Za-z0-9_-]*" js/config.js)
-          curl -sf -X POST "$URL/rest/v1/rpc/ping" -H "apikey: $CHAVE" -H "Content-Type: application/json" -d '{}'
+          REF=$(echo "$URL" | sed -E 's#https://([a-z0-9]+)\..*#\1#')
+          API="https://api.supabase.com/v1/projects/$REF"
+
+          ping() {
+            curl -sf --retry 3 --retry-delay 10 --retry-all-errors -X POST \
+              "$URL/rest/v1/rpc/ping" -H "apikey: $CHAVE" \
+              -H "Content-Type: application/json" -d '{}'
+          }
+
+          if ping; then echo; echo "Banco no ar."; exit 0; fi
+
+          echo "O banco não respondeu."
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Banco fora do ar e sem o segredo SUPABASE_ACCESS_TOKEN para reativar. Reative pelo painel do Supabase."
+            exit 1
+          fi
+
+          STATUS=$(curl -sf "$API" -H "Authorization: Bearer $TOKEN" | jq -r .status)
+          echo "Status no Supabase: $STATUS"
+          if [ "$STATUS" = "INACTIVE" ]; then
+            echo "Pedindo para reativar..."
+            curl -sf -X POST "$API/restore" -H "Authorization: Bearer $TOKEN"
+          fi
+
+          # A reativação leva alguns minutos.
+          for i in $(seq 1 40); do
+            sleep 30
+            if ping; then echo; echo "Banco de volta."; exit 0; fi
+          done
+          echo "::error::O banco não voltou em 20 minutos (status: $STATUS)."
+          exit 1
       - name: Registrar atividade no dia 1 de cada mês
-        # O cron "*/3" sempre roda no dia 1; o disparo manual também grava.
+        # Grava só a data: as outras rodadas do mesmo dia não têm o que commitar.
         run: |
           if [ "$(date -u +%d)" = "01" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            date -u +%Y-%m-%dT%H:%MZ > .ultima-atividade
+            date -u +%Y-%m-%d > .ultima-atividade
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add .ultima-atividade
