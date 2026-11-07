@@ -33,8 +33,10 @@ Você prefere isso ou aquilo? Site estático (GitHub Pages) com banco no Supabas
 - `supabase/schema.sql`: tabelas, RLS e funções. O site só lê `alternativas`;
   tudo o que escreve passa pelas funções, que validam o que chega.
 - `supabase/migracoes/`: as mudanças aplicadas no banco depois da primeira versão.
-- `.github/workflows/manter-ativo.yml`: consulta o banco a cada 3 dias para o
-  plano gratuito do Supabase não pausar o projeto.
+- `.github/workflows/manter-ativo.yml`: consulta o banco a cada 6 horas e, se o
+  plano gratuito do Supabase tiver pausado o projeto, pede para reativá-lo. Para
+  isso precisa do segredo `SUPABASE_ACCESS_TOKEN` no repositório (token pessoal
+  criado em supabase.com/dashboard/account/tokens).
 
 ## Testes
 
